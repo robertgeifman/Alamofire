@@ -49,7 +49,7 @@ extension String: URLConvertible {
 
 extension URL: URLConvertible {
     /// Returns self.
-    public func asURL() throws -> URL { return self }
+    public func asURL() throws -> URL { self }
 }
 
 extension URLComponents: URLConvertible {
@@ -78,12 +78,12 @@ public protocol URLRequestConvertible {
 
 extension URLRequestConvertible {
     /// The URL request.
-    public var urlRequest: URLRequest? { return try? asURLRequest() }
+    public var urlRequest: URLRequest? { try? asURLRequest() }
 }
 
 extension URLRequest: URLRequestConvertible {
     /// Returns a URL request or throws if an `Error` was encountered.
-    public func asURLRequest() throws -> URLRequest { return self }
+    public func asURLRequest() throws -> URLRequest { self }
 }
 
 // MARK: -
@@ -129,21 +129,8 @@ extension URLRequest {
 ///
 /// - returns: The created `DataRequest`.
 @discardableResult
-public func request(
-    _ url: URLConvertible,
-    method: HTTPMethod = .get,
-    parameters: Parameters? = nil,
-    encoding: ParameterEncoding = URLEncoding.default,
-    headers: HTTPHeaders? = nil)
-    -> DataRequest
-{
-    return SessionManager.default.request(
-        url,
-        method: method,
-        parameters: parameters,
-        encoding: encoding,
-        headers: headers
-    )
+public func request(_ url: URLConvertible, method: HTTPMethod = .get, parameters: Parameters? = nil, encoding: ParameterEncoding = URLEncoding.default, headers: HTTPHeaders? = nil) -> DataRequest {
+    SessionManager.default.request(url, method: method, parameters: parameters, encoding: encoding, headers: headers)
 }
 
 /// Creates a `DataRequest` using the default `SessionManager` to retrieve the contents of a URL based on the
@@ -154,7 +141,7 @@ public func request(
 /// - returns: The created `DataRequest`.
 @discardableResult
 public func request(_ urlRequest: URLRequestConvertible) -> DataRequest {
-    return SessionManager.default.request(urlRequest)
+    SessionManager.default.request(urlRequest)
 }
 
 // MARK: - Download Request
@@ -176,23 +163,8 @@ public func request(_ urlRequest: URLRequestConvertible) -> DataRequest {
 ///
 /// - returns: The created `DownloadRequest`.
 @discardableResult
-public func download(
-    _ url: URLConvertible,
-    method: HTTPMethod = .get,
-    parameters: Parameters? = nil,
-    encoding: ParameterEncoding = URLEncoding.default,
-    headers: HTTPHeaders? = nil,
-    to destination: DownloadRequest.DownloadFileDestination? = nil)
-    -> DownloadRequest
-{
-    return SessionManager.default.download(
-        url,
-        method: method,
-        parameters: parameters,
-        encoding: encoding,
-        headers: headers,
-        to: destination
-    )
+public func download(_ url: URLConvertible, method: HTTPMethod = .get, parameters: Parameters? = nil, encoding: ParameterEncoding = URLEncoding.default, headers: HTTPHeaders? = nil, to destination: DownloadRequest.DownloadFileDestination? = nil) -> DownloadRequest {
+    SessionManager.default.download(url, method: method, parameters: parameters, encoding: encoding, headers: headers, to: destination)
 }
 
 /// Creates a `DownloadRequest` using the default `SessionManager` to retrieve the contents of a URL based on the
@@ -206,12 +178,8 @@ public func download(
 ///
 /// - returns: The created `DownloadRequest`.
 @discardableResult
-public func download(
-    _ urlRequest: URLRequestConvertible,
-    to destination: DownloadRequest.DownloadFileDestination? = nil)
-    -> DownloadRequest
-{
-    return SessionManager.default.download(urlRequest, to: destination)
+public func download(_ urlRequest: URLRequestConvertible, to destination: DownloadRequest.DownloadFileDestination? = nil) -> DownloadRequest {
+    SessionManager.default.download(urlRequest, to: destination)
 }
 
 // MARK: Resume Data
@@ -236,11 +204,7 @@ public func download(
 ///
 /// - returns: The created `DownloadRequest`.
 @discardableResult
-public func download(
-    resumingWith resumeData: Data,
-    to destination: DownloadRequest.DownloadFileDestination? = nil)
-    -> DownloadRequest
-{
+public func download(resumingWith resumeData: Data, to destination: DownloadRequest.DownloadFileDestination? = nil) -> DownloadRequest {
     return SessionManager.default.download(resumingWith: resumeData, to: destination)
 }
 
@@ -258,14 +222,8 @@ public func download(
 ///
 /// - returns: The created `UploadRequest`.
 @discardableResult
-public func upload(
-    _ fileURL: URL,
-    to url: URLConvertible,
-    method: HTTPMethod = .post,
-    headers: HTTPHeaders? = nil)
-    -> UploadRequest
-{
-    return SessionManager.default.upload(fileURL, to: url, method: method, headers: headers)
+public func upload(_ fileURL: URL, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil) -> UploadRequest {
+    SessionManager.default.upload(fileURL, to: url, method: method, headers: headers)
 }
 
 /// Creates a `UploadRequest` using the default `SessionManager` from the specified `urlRequest` for
@@ -277,7 +235,7 @@ public func upload(
 /// - returns: The created `UploadRequest`.
 @discardableResult
 public func upload(_ fileURL: URL, with urlRequest: URLRequestConvertible) -> UploadRequest {
-    return SessionManager.default.upload(fileURL, with: urlRequest)
+    SessionManager.default.upload(fileURL, with: urlRequest)
 }
 
 // MARK: Data
@@ -292,14 +250,8 @@ public func upload(_ fileURL: URL, with urlRequest: URLRequestConvertible) -> Up
 ///
 /// - returns: The created `UploadRequest`.
 @discardableResult
-public func upload(
-    _ data: Data,
-    to url: URLConvertible,
-    method: HTTPMethod = .post,
-    headers: HTTPHeaders? = nil)
-    -> UploadRequest
-{
-    return SessionManager.default.upload(data, to: url, method: method, headers: headers)
+public func upload(_ data: Data, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil) -> UploadRequest {
+    SessionManager.default.upload(data, to: url, method: method, headers: headers)
 }
 
 /// Creates an `UploadRequest` using the default `SessionManager` from the specified `urlRequest` for
@@ -311,7 +263,7 @@ public func upload(
 /// - returns: The created `UploadRequest`.
 @discardableResult
 public func upload(_ data: Data, with urlRequest: URLRequestConvertible) -> UploadRequest {
-    return SessionManager.default.upload(data, with: urlRequest)
+    SessionManager.default.upload(data, with: urlRequest)
 }
 
 // MARK: InputStream
@@ -326,14 +278,8 @@ public func upload(_ data: Data, with urlRequest: URLRequestConvertible) -> Uplo
 ///
 /// - returns: The created `UploadRequest`.
 @discardableResult
-public func upload(
-    _ stream: InputStream,
-    to url: URLConvertible,
-    method: HTTPMethod = .post,
-    headers: HTTPHeaders? = nil)
-    -> UploadRequest
-{
-    return SessionManager.default.upload(stream, to: url, method: method, headers: headers)
+public func upload(_ stream: InputStream, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil) -> UploadRequest {
+    SessionManager.default.upload(stream, to: url, method: method, headers: headers)
 }
 
 /// Creates an `UploadRequest` using the default `SessionManager` from the specified `urlRequest` for
@@ -345,7 +291,7 @@ public func upload(
 /// - returns: The created `UploadRequest`.
 @discardableResult
 public func upload(_ stream: InputStream, with urlRequest: URLRequestConvertible) -> UploadRequest {
-    return SessionManager.default.upload(stream, with: urlRequest)
+    SessionManager.default.upload(stream, with: urlRequest)
 }
 
 // MARK: MultipartFormData
@@ -373,22 +319,8 @@ public func upload(_ stream: InputStream, with urlRequest: URLRequestConvertible
 /// - parameter method:                  The HTTP method. `.post` by default.
 /// - parameter headers:                 The HTTP headers. `nil` by default.
 /// - parameter encodingCompletion:      The closure called when the `MultipartFormData` encoding is complete.
-public func upload(
-    multipartFormData: @escaping (MultipartFormData) -> Void,
-    usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold,
-    to url: URLConvertible,
-    method: HTTPMethod = .post,
-    headers: HTTPHeaders? = nil,
-    encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?)
-{
-    return SessionManager.default.upload(
-        multipartFormData: multipartFormData,
-        usingThreshold: encodingMemoryThreshold,
-        to: url,
-        method: method,
-        headers: headers,
-        encodingCompletion: encodingCompletion
-    )
+public func upload(multipartFormData: @escaping (MultipartFormData) -> Void, usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, to url: URLConvertible, method: HTTPMethod = .post, headers: HTTPHeaders? = nil, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+    SessionManager.default.upload(multipartFormData: multipartFormData, usingThreshold: encodingMemoryThreshold, to: url, method: method, headers: headers, encodingCompletion: encodingCompletion)
 }
 
 /// Encodes `multipartFormData` using `encodingMemoryThreshold` and the default `SessionManager` and
@@ -412,18 +344,8 @@ public func upload(
 ///                                      `multipartFormDataEncodingMemoryThreshold` by default.
 /// - parameter urlRequest:              The URL request.
 /// - parameter encodingCompletion:      The closure called when the `MultipartFormData` encoding is complete.
-public func upload(
-    multipartFormData: @escaping (MultipartFormData) -> Void,
-    usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold,
-    with urlRequest: URLRequestConvertible,
-    encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?)
-{
-    return SessionManager.default.upload(
-        multipartFormData: multipartFormData,
-        usingThreshold: encodingMemoryThreshold,
-        with: urlRequest,
-        encodingCompletion: encodingCompletion
-    )
+public func upload(multipartFormData: @escaping (MultipartFormData) -> Void, usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold, with urlRequest: URLRequestConvertible, encodingCompletion: ((SessionManager.MultipartFormDataEncodingResult) -> Void)?) {
+    SessionManager.default.upload(multipartFormData: multipartFormData, usingThreshold: encodingMemoryThreshold, with: urlRequest, encodingCompletion: encodingCompletion)
 }
 
 #if !os(watchOS)
@@ -444,7 +366,7 @@ public func upload(
 @discardableResult
 @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
 public func stream(withHostName hostName: String, port: Int) -> StreamRequest {
-    return SessionManager.default.stream(withHostName: hostName, port: port)
+    SessionManager.default.stream(withHostName: hostName, port: port)
 }
 
 // MARK: NetService
@@ -459,7 +381,7 @@ public func stream(withHostName hostName: String, port: Int) -> StreamRequest {
 @discardableResult
 @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
 public func stream(with netService: NetService) -> StreamRequest {
-    return SessionManager.default.stream(with: netService)
+    SessionManager.default.stream(with: netService)
 }
 
 #endif

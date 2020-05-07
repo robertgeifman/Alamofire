@@ -148,12 +148,10 @@ open class NetworkReachabilityManager {
         context.info = Unmanaged.passUnretained(self).toOpaque()
 
         let callbackEnabled = SCNetworkReachabilitySetCallback(
-            reachability,
-            { (_, flags, info) in
+            reachability, { (_, flags, info) in
                 let reachability = Unmanaged<NetworkReachabilityManager>.fromOpaque(info!).takeUnretainedValue()
                 reachability.notifyListener(flags)
-            },
-            &context
+            }, &context
         )
 
         let queueEnabled = SCNetworkReachabilitySetDispatchQueue(reachability, listenerQueue)
@@ -219,8 +217,7 @@ extension NetworkReachabilityManager.NetworkReachabilityStatus: Equatable {}
 ///
 /// - returns: `true` if the two values are equal, `false` otherwise.
 public func ==(
-    lhs: NetworkReachabilityManager.NetworkReachabilityStatus,
-    rhs: NetworkReachabilityManager.NetworkReachabilityStatus)
+    lhs: NetworkReachabilityManager.NetworkReachabilityStatus, rhs: NetworkReachabilityManager.NetworkReachabilityStatus)
     -> Bool
 {
     switch (lhs, rhs) {

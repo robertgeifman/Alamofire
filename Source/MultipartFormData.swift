@@ -308,11 +308,7 @@ open class MultipartFormData {
     /// - parameter fileName: The filename to associate with the stream content in the `Content-Disposition` HTTP header.
     /// - parameter mimeType: The MIME type to associate with the stream content in the `Content-Type` HTTP header.
     public func append(
-        _ stream: InputStream,
-        withLength length: UInt64,
-        name: String,
-        fileName: String,
-        mimeType: String)
+        _ stream: InputStream, withLength length: UInt64, name: String, fileName: String, mimeType: String)
     {
         let headers = contentHeaders(withName: name, fileName: fileName, mimeType: mimeType)
         append(stream, withLength: length, headers: headers)
@@ -536,8 +532,7 @@ open class MultipartFormData {
 
     private func mimeType(forPathExtension pathExtension: String) -> String {
         if
-            let id = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, pathExtension as CFString, nil)?.takeRetainedValue(),
-            let contentType = UTTypeCopyPreferredTagWithClass(id, kUTTagClassMIMEType)?.takeRetainedValue()
+            let id = UTTypeCreatePreferredIdentifierForTag(kUTTagClassFilenameExtension, pathExtension as CFString, nil)?.takeRetainedValue(), let contentType = UTTypeCopyPreferredTagWithClass(id, kUTTagClassMIMEType)?.takeRetainedValue()
         {
             return contentType as String
         }

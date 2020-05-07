@@ -91,8 +91,7 @@ extension Request {
     // MARK: Status Code
 
     fileprivate func validate<S: Sequence>(
-        statusCode acceptableStatusCodes: S,
-        response: HTTPURLResponse)
+        statusCode acceptableStatusCodes: S, response: HTTPURLResponse)
         -> ValidationResult
         where S.Iterator.Element == Int
     {
@@ -107,17 +106,14 @@ extension Request {
     // MARK: Content Type
 
     fileprivate func validate<S: Sequence>(
-        contentType acceptableContentTypes: S,
-        response: HTTPURLResponse,
-        data: Data?)
+        contentType acceptableContentTypes: S, response: HTTPURLResponse, data: Data?)
         -> ValidationResult
         where S.Iterator.Element == String
     {
         guard let data = data, data.count > 0 else { return .success }
 
         guard
-            let responseContentType = response.mimeType,
-            let responseMIMEType = MIMEType(responseContentType)
+            let responseContentType = response.mimeType, let responseMIMEType = MIMEType(responseContentType)
         else {
             for contentType in acceptableContentTypes {
                 if let mimeType = MIMEType(contentType), mimeType.isWildcard {
@@ -141,8 +137,7 @@ extension Request {
 
         let error: AFError = {
             let reason: ErrorReason = .unacceptableContentType(
-                acceptableContentTypes: Array(acceptableContentTypes),
-                responseContentType: responseContentType
+                acceptableContentTypes: Array(acceptableContentTypes), responseContentType: responseContentType
             )
 
             return AFError.responseValidationFailed(reason: reason)
@@ -170,9 +165,7 @@ extension DataRequest {
     public func validate(_ validation: @escaping Validation) -> Self {
         let validationExecution: () -> Void = { [unowned self] in
             if
-                let response = self.response,
-                self.delegate.error == nil,
-                case let .failure(error) = validation(self.request, response, self.delegate.data)
+                let response = self.response, self.delegate.error == nil, case let .failure(error) = validation(self.request, response, self.delegate.data)
             {
                 self.delegate.error = error
             }
@@ -232,10 +225,7 @@ extension DownloadRequest {
     /// A closure used to validate a request that takes a URL request, a URL response, a temporary URL and a
     /// destination URL, and returns whether the request was valid.
     public typealias Validation = (
-        _ request: URLRequest?,
-        _ response: HTTPURLResponse,
-        _ temporaryURL: URL?,
-        _ destinationURL: URL?)
+        _ request: URLRequest?, _ response: HTTPURLResponse, _ temporaryURL: URL?, _ destinationURL: URL?)
         -> ValidationResult
 
     /// Validates the request, using the specified closure.
@@ -252,10 +242,7 @@ extension DownloadRequest {
             let temporaryURL = self.downloadDelegate.temporaryURL
             let destinationURL = self.downloadDelegate.destinationURL
 
-            if
-                let response = self.response,
-                self.delegate.error == nil,
-                case let .failure(error) = validation(request, response, temporaryURL, destinationURL)
+            if let response = self.response, self.delegate.error == nil, case let .failure(error) = validation(request, response, temporaryURL, destinationURL)
             {
                 self.delegate.error = error
             }

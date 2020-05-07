@@ -195,6 +195,11 @@ open class Request {
     // MARK: State
 
     /// Resumes the request.
+    open func start() -> Self {
+    	resume()
+        return self
+    }
+    /// Resumes the request.
     open func resume() {
         guard let task = task else { delegate.queue.isSuspended = false ; return }
 

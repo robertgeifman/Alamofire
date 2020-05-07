@@ -26,7 +26,6 @@ import Foundation
 
 /// Responsible for creating and managing `Request` objects, as well as their underlying `NSURLSession`.
 open class SessionManager {
-
     // MARK: - Helper Types
 
     /// Defines whether the `MultipartFormData` encoding was successful and contains result of the encoding as
@@ -166,10 +165,9 @@ open class SessionManager {
     public init(
         configuration: URLSessionConfiguration = URLSessionConfiguration.default,
         delegate: SessionDelegate = SessionDelegate(),
-        serverTrustPolicyManager: ServerTrustPolicyManager? = nil)
-    {
+        serverTrustPolicyManager: ServerTrustPolicyManager? = nil) {
         self.delegate = delegate
-        self.session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
+        session = URLSession(configuration: configuration, delegate: delegate, delegateQueue: nil)
 
         commonInit(serverTrustPolicyManager: serverTrustPolicyManager)
     }
@@ -185,8 +183,7 @@ open class SessionManager {
     public init?(
         session: URLSession,
         delegate: SessionDelegate,
-        serverTrustPolicyManager: ServerTrustPolicyManager? = nil)
-    {
+        serverTrustPolicyManager: ServerTrustPolicyManager? = nil) {
         guard delegate === session.delegate else { return nil }
 
         self.delegate = delegate
@@ -200,7 +197,7 @@ open class SessionManager {
 
         delegate.sessionManager = self
 
-        delegate.sessionDidFinishEventsForBackgroundURLSession = { [weak self] session in
+        delegate.sessionDidFinishEventsForBackgroundURLSession = { [weak self] _ in
             guard let strongSelf = self else { return }
             DispatchQueue.main.async { strongSelf.backgroundCompletionHandler?() }
         }
@@ -228,17 +225,16 @@ open class SessionManager {
         method: HTTPMethod = .get,
         parameters: Parameters? = nil,
         encoding: ParameterEncoding = URLEncoding.default,
-        headers: HTTPHeaders? = nil)
-        -> DataRequest
-    {
+        headers: HTTPHeaders? = nil, suspended: Bool = false)
+        -> DataRequest {
         var originalRequest: URLRequest?
 
         do {
             originalRequest = try URLRequest(url: url, method: method, headers: headers)
             let encodedURLRequest = try encoding.encode(originalRequest!, with: parameters)
-            return request(encodedURLRequest)
+            return request(encodedURLRequest, suspended: suspended)
         } catch {
-            return request(originalRequest, failedWith: error)
+            return request(originalRequest, failedWith: error, suspended: suspended)
         }
     }
 
@@ -250,7 +246,7 @@ open class SessionManager {
     ///
     /// - returns: The created `DataRequest`.
     @discardableResult
-    open func request(_ urlRequest: URLRequestConvertible) -> DataRequest {
+    open func request(_ urlRequest: URLRequestConvertible, suspended: Bool = false) -> DataRequest {
         var originalRequest: URLRequest?
 
         do {
@@ -262,17 +258,17 @@ open class SessionManager {
 
             delegate[task] = request
 
-            if startRequestsImmediately { request.resume() }
+            if !suspended, startRequestsImmediately { request.resume() }
 
             return request
         } catch {
-            return request(originalRequest, failedWith: error)
+            return request(originalRequest, failedWith: error, suspended: suspended)
         }
     }
 
     // MARK: Private - Request Implementation
 
-    private func request(_ urlRequest: URLRequest?, failedWith error: Error) -> DataRequest {
+    private func request(_ urlRequest: URLRequest?, failedWith error: Error, suspended: Bool = false) -> DataRequest {
         var requestTask: Request.RequestTask = .data(nil, nil)
 
         if let urlRequest = urlRequest {
@@ -286,7 +282,7 @@ open class SessionManager {
         if let retrier = retrier, error is AdaptError {
             allowRetrier(retrier, toRetry: request, with: underlyingError)
         } else {
-            if startRequestsImmediately { request.resume() }
+            if !suspended, startRequestsImmediately { request.resume() }
         }
 
         return request
@@ -319,15 +315,14 @@ open class SessionManager {
         parameters: Parameters? = nil,
         encoding: ParameterEncoding = URLEncoding.default,
         headers: HTTPHeaders? = nil,
-        to destination: DownloadRequest.DownloadFileDestination? = nil)
-        -> DownloadRequest
-    {
+        to destination: DownloadRequest.DownloadFileDestination? = nil, suspended: Bool = false)
+        -> DownloadRequest {
         do {
             let urlRequest = try URLRequest(url: url, method: method, headers: headers)
             let encodedURLRequest = try encoding.encode(urlRequest, with: parameters)
-            return download(encodedURLRequest, to: destination)
+            return download(encodedURLRequest, to: destination, suspended: suspended)
         } catch {
-            return download(nil, to: destination, failedWith: error)
+            return download(nil, to: destination, failedWith: error, suspended: suspended)
         }
     }
 
@@ -346,14 +341,13 @@ open class SessionManager {
     @discardableResult
     open func download(
         _ urlRequest: URLRequestConvertible,
-        to destination: DownloadRequest.DownloadFileDestination? = nil)
-        -> DownloadRequest
-    {
+        to destination: DownloadRequest.DownloadFileDestination? = nil, suspended: Bool = false)
+        -> DownloadRequest {
         do {
             let urlRequest = try urlRequest.asURLRequest()
-            return download(.request(urlRequest), to: destination)
+            return download(.request(urlRequest), to: destination, suspended: suspended)
         } catch {
-            return download(nil, to: destination, failedWith: error)
+            return download(nil, to: destination, failedWith: error, suspended: suspended)
         }
     }
 
@@ -383,19 +377,17 @@ open class SessionManager {
     @discardableResult
     open func download(
         resumingWith resumeData: Data,
-        to destination: DownloadRequest.DownloadFileDestination? = nil)
-        -> DownloadRequest
-    {
-        return download(.resumeData(resumeData), to: destination)
+        to destination: DownloadRequest.DownloadFileDestination? = nil, suspended: Bool = false)
+        -> DownloadRequest {
+        return download(.resumeData(resumeData), to: destination, suspended: suspended)
     }
 
     // MARK: Private - Download Implementation
 
     private func download(
         _ downloadable: DownloadRequest.Downloadable,
-        to destination: DownloadRequest.DownloadFileDestination?)
-        -> DownloadRequest
-    {
+        to destination: DownloadRequest.DownloadFileDestination?, suspended: Bool = false)
+        -> DownloadRequest {
         do {
             let task = try downloadable.task(session: session, adapter: adapter, queue: queue)
             let download = DownloadRequest(session: session, requestTask: .download(downloadable, task))
@@ -404,20 +396,19 @@ open class SessionManager {
 
             delegate[task] = download
 
-            if startRequestsImmediately { download.resume() }
+            if !suspended, startRequestsImmediately { download.resume() }
 
             return download
         } catch {
-            return download(downloadable, to: destination, failedWith: error)
+            return download(downloadable, to: destination, failedWith: error, suspended: suspended)
         }
     }
 
     private func download(
         _ downloadable: DownloadRequest.Downloadable?,
         to destination: DownloadRequest.DownloadFileDestination?,
-        failedWith error: Error)
-        -> DownloadRequest
-    {
+        failedWith error: Error, suspended: Bool = false)
+        -> DownloadRequest {
         var downloadTask: Request.RequestTask = .download(nil, nil)
 
         if let downloadable = downloadable {
@@ -432,7 +423,7 @@ open class SessionManager {
         if let retrier = retrier, error is AdaptError {
             allowRetrier(retrier, toRetry: download, with: underlyingError)
         } else {
-            if startRequestsImmediately { download.resume() }
+            if !suspended, startRequestsImmediately { download.resume() }
         }
 
         return download
@@ -458,8 +449,7 @@ open class SessionManager {
         to url: URLConvertible,
         method: HTTPMethod = .post,
         headers: HTTPHeaders? = nil)
-        -> UploadRequest
-    {
+        -> UploadRequest {
         do {
             let urlRequest = try URLRequest(url: url, method: method, headers: headers)
             return upload(fileURL, with: urlRequest)
@@ -504,8 +494,7 @@ open class SessionManager {
         to url: URLConvertible,
         method: HTTPMethod = .post,
         headers: HTTPHeaders? = nil)
-        -> UploadRequest
-    {
+        -> UploadRequest {
         do {
             let urlRequest = try URLRequest(url: url, method: method, headers: headers)
             return upload(data, with: urlRequest)
@@ -550,8 +539,7 @@ open class SessionManager {
         to url: URLConvertible,
         method: HTTPMethod = .post,
         headers: HTTPHeaders? = nil)
-        -> UploadRequest
-    {
+        -> UploadRequest {
         do {
             let urlRequest = try URLRequest(url: url, method: method, headers: headers)
             return upload(stream, with: urlRequest)
@@ -612,8 +600,7 @@ open class SessionManager {
         method: HTTPMethod = .post,
         headers: HTTPHeaders? = nil,
         queue: DispatchQueue? = nil,
-        encodingCompletion: ((MultipartFormDataEncodingResult) -> Void)?)
-    {
+        encodingCompletion: ((MultipartFormDataEncodingResult) -> Void)?) {
         do {
             let urlRequest = try URLRequest(url: url, method: method, headers: headers)
 
@@ -622,8 +609,7 @@ open class SessionManager {
                 usingThreshold: encodingMemoryThreshold,
                 with: urlRequest,
                 queue: queue,
-                encodingCompletion: encodingCompletion
-            )
+                encodingCompletion: encodingCompletion)
         } catch {
             (queue ?? DispatchQueue.main).async { encodingCompletion?(.failure(error)) }
         }
@@ -657,8 +643,7 @@ open class SessionManager {
         usingThreshold encodingMemoryThreshold: UInt64 = SessionManager.multipartFormDataEncodingMemoryThreshold,
         with urlRequest: URLRequestConvertible,
         queue: DispatchQueue? = nil,
-        encodingCompletion: ((MultipartFormDataEncodingResult) -> Void)?)
-    {
+        encodingCompletion: ((MultipartFormDataEncodingResult) -> Void)?) {
         DispatchQueue.global(qos: .utility).async {
             let formData = MultipartFormData()
             multipartFormData(formData)
@@ -671,14 +656,13 @@ open class SessionManager {
 
                 let isBackgroundSession = self.session.configuration.identifier != nil
 
-                if formData.contentLength < encodingMemoryThreshold && !isBackgroundSession {
+                if formData.contentLength < encodingMemoryThreshold, !isBackgroundSession {
                     let data = try formData.encode()
 
                     let encodingResult = MultipartFormDataEncodingResult.success(
                         request: self.upload(data, with: urlRequestWithContentType),
                         streamingFromDisk: false,
-                        streamFileURL: nil
-                    )
+                        streamFileURL: nil)
 
                     (queue ?? DispatchQueue.main).async { encodingCompletion?(encodingResult) }
                 } else {
@@ -720,8 +704,7 @@ open class SessionManager {
                         let encodingResult = MultipartFormDataEncodingResult.success(
                             request: upload,
                             streamingFromDisk: true,
-                            streamFileURL: fileURL
-                        )
+                            streamFileURL: fileURL)
 
                         encodingCompletion?(encodingResult)
                     }
@@ -781,67 +764,67 @@ open class SessionManager {
         return upload
     }
 
-#if !os(watchOS)
+    #if !os(watchOS)
 
-    // MARK: - Stream Request
+        // MARK: - Stream Request
 
-    // MARK: Hostname and Port
+        // MARK: Hostname and Port
 
-    /// Creates a `StreamRequest` for bidirectional streaming using the `hostname` and `port`.
-    ///
-    /// If `startRequestsImmediately` is `true`, the request will have `resume()` called before being returned.
-    ///
-    /// - parameter hostName: The hostname of the server to connect to.
-    /// - parameter port:     The port of the server to connect to.
-    ///
-    /// - returns: The created `StreamRequest`.
-    @discardableResult
-    @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
-    open func stream(withHostName hostName: String, port: Int) -> StreamRequest {
-        return stream(.stream(hostName: hostName, port: port))
-    }
-
-    // MARK: NetService
-
-    /// Creates a `StreamRequest` for bidirectional streaming using the `netService`.
-    ///
-    /// If `startRequestsImmediately` is `true`, the request will have `resume()` called before being returned.
-    ///
-    /// - parameter netService: The net service used to identify the endpoint.
-    ///
-    /// - returns: The created `StreamRequest`.
-    @discardableResult
-    @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
-    open func stream(with netService: NetService) -> StreamRequest {
-        return stream(.netService(netService))
-    }
-
-    // MARK: Private - Stream Implementation
-
-    @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
-    private func stream(_ streamable: StreamRequest.Streamable) -> StreamRequest {
-        do {
-            let task = try streamable.task(session: session, adapter: adapter, queue: queue)
-            let request = StreamRequest(session: session, requestTask: .stream(streamable, task))
-
-            delegate[task] = request
-
-            if startRequestsImmediately { request.resume() }
-
-            return request
-        } catch {
-            return stream(failedWith: error)
+        /// Creates a `StreamRequest` for bidirectional streaming using the `hostname` and `port`.
+        ///
+        /// If `startRequestsImmediately` is `true`, the request will have `resume()` called before being returned.
+        ///
+        /// - parameter hostName: The hostname of the server to connect to.
+        /// - parameter port:     The port of the server to connect to.
+        ///
+        /// - returns: The created `StreamRequest`.
+        @discardableResult
+        @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
+        open func stream(withHostName hostName: String, port: Int) -> StreamRequest {
+            return stream(.stream(hostName: hostName, port: port))
         }
-    }
 
-    @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
-    private func stream(failedWith error: Error) -> StreamRequest {
-        let stream = StreamRequest(session: session, requestTask: .stream(nil, nil), error: error)
-        if startRequestsImmediately { stream.resume() }
-        return stream
-    }
+        // MARK: NetService
 
-#endif
+        /// Creates a `StreamRequest` for bidirectional streaming using the `netService`.
+        ///
+        /// If `startRequestsImmediately` is `true`, the request will have `resume()` called before being returned.
+        ///
+        /// - parameter netService: The net service used to identify the endpoint.
+        ///
+        /// - returns: The created `StreamRequest`.
+        @discardableResult
+        @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
+        open func stream(with netService: NetService) -> StreamRequest {
+            return stream(.netService(netService))
+        }
+
+        // MARK: Private - Stream Implementation
+
+        @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
+        private func stream(_ streamable: StreamRequest.Streamable) -> StreamRequest {
+            do {
+                let task = try streamable.task(session: session, adapter: adapter, queue: queue)
+                let request = StreamRequest(session: session, requestTask: .stream(streamable, task))
+
+                delegate[task] = request
+
+                if startRequestsImmediately { request.resume() }
+
+                return request
+            } catch {
+                return stream(failedWith: error)
+            }
+        }
+
+        @available(iOS 9.0, macOS 10.11, tvOS 9.0, *)
+        private func stream(failedWith error: Error) -> StreamRequest {
+            let stream = StreamRequest(session: session, requestTask: .stream(nil, nil), error: error)
+            if startRequestsImmediately { stream.resume() }
+            return stream
+        }
+
+    #endif
 
     // MARK: - Internal - Retry Request
 
